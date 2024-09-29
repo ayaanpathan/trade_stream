@@ -1,16 +1,81 @@
-# trade_stream
+# Trade Stream
 
-A new Flutter project.
+Trade Stream is a Flutter application for real-time trading instrument tracking and visualization.
+
+
+
+## Table of Contents
+
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Running the App](#running-the-app)
+- [Running Tests](#running-tests)
+
+
+## Features
+
+- Real-time trading instrument data
+- Interactive price charts
+- Market selector for different trading markets
+- Search functionality for instruments
+- Detailed view for individual instruments
+
+## Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+
+- Flutter SDK
+- Dart SDK
+- An IDE (e.g., Android Studio, VS Code) with Flutter and Dart plugins installed
+- Git for version control
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+To get a local copy up and running, follow these steps:
 
-A few resources to get you started if this is your first Flutter project:
+1. Clone the repository:
+   ```
+   git clone https://github.com/your-username/trade_stream.git
+   ```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+2. Navigate to the project directory:
+   ```
+   cd trade_stream
+   ```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+3. Install dependencies:
+   ```
+   flutter pub get
+   ```
+
+4. Set up your API key:
+   - Create a file named `.env` in the root directory
+   - Add your Finnhub API key:
+     ```
+     API_KEY=your_finnhub_api_key_here
+     ```
+
+## Running the App
+
+To run the app, use the following command:
+
+```
+flutter run
+```
+
+This will launch the app on your connected device or emulator.
+
+## Running Tests
+
+To run all tests, use the following command:
+
+```
+flutter test
+```
+
+To run a specific test file:
+
+```
+flutter test test/path/to/test_file.dart
+```
