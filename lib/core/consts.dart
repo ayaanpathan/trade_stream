@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 
+/// A class containing application-wide constants.
 class AppConstants {
-  /// Max number of websocket subscription of symbols for a free account.
+  /// The maximum number of WebSocket symbol subscriptions allowed for a free account.
   static const int maxInstrumentsForFreeAccount = 50;
 
+  /// Constants for different cryptocurrency exchanges.
   static const String binance = 'binance';
-  static const String crypto = 'crypto';
-  static const String forex = 'forex';
+  static const String coinbase = 'coinbase';
+  static const String gemini = 'gemini';
+
+  /// Constant for the Oanda forex trading platform.
   static const String oanda = 'oanda';
+
+  /// Constants for different types of financial instruments.
+  static const String forex = 'forex';
+  static const String crypto = 'crypto';
+  static const String stocks = 'stocks';
 }
 
+/// A class containing predefined margin values for consistent spacing throughout the app.
 class AppMargins {
   static const double margin0 = 0.0;
   static const double margin04 = 4.0;
@@ -44,13 +54,29 @@ class AppMargins {
   static const double margin120 = 120.0;
 }
 
+/// A class containing color constants used throughout the application.
 class AppColors {
+  /// The primary background color of the app.
   static const Color primaryBackground = Color(0xFF1A1A2E);
+
+  /// The secondary background color, used for elements like cards or dialogs.
   static const Color secondaryBackground = Color(0xFF16213E);
+
+  /// The main accent color of the app.
   static const Color accentColor = Color(0xFF0F3443);
+
+  /// A lighter shade of the accent color, used for highlights or contrasts.
   static const Color accentColorLight = Color(0xFF34E89E);
+
+  /// The primary text color.
   static const Color textPrimary = Colors.white;
+
+  /// The secondary text color, typically used for less emphasized text.
   static const Color textSecondary = Colors.white70;
+
+  /// The base color for shimmer effects.
   static const Color shimmerBase = Color(0xFF16213E);
+
+  /// The highlight color for shimmer effects.
   static const Color shimmerHighlight = Color(0xFF0F3443);
 }

@@ -1,32 +1,55 @@
-import 'dart:ui';
+/// A page that displays detailed information about a specific trading instrument.
+///
+/// This page shows the instrument's description, current price, and a chart of price history.
+/// It uses BLoC pattern for state management and real-time updates.
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:trade_stream/features/trading_home/data/models/trading_instrument_model.dart';
 import 'package:trade_stream/features/trading_home/domain/entities/trading_instrument.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:trade_stream/core/consts.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:trade_stream/features/trading_home/presentation/widgets/price_widget.dart';
+import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
+import 'dart:developer' as dev;
 
+/// Stateful widget for the instrument detail page.
 class InstrumentDetailPage extends StatefulWidget {
+  /// The trading instrument to display details for.
   final TradingInstrument instrument;
 
+  /// Creates an [InstrumentDetailPage].
+  ///
+  /// The [instrument] parameter is required.
   const InstrumentDetailPage({super.key, required this.instrument});
 
   @override
   InstrumentDetailPageState createState() => InstrumentDetailPageState();
 }
 
+/// State for the [InstrumentDetailPage].
 class InstrumentDetailPageState extends State<InstrumentDetailPage>
     with SingleTickerProviderStateMixin {
+  /// List of price data points for the chart.
   final List<FlSpot> _priceData = [];
-  late Timer _timer;
+
+  /// Controller for the horizontal scrolling of the chart.
   final ScrollController _scrollController = ScrollController();
+
+  /// Controller for the price update animation.
   late AnimationController _animationController;
+
+  /// Animation for smooth price updates.
   late Animation<double> _animation;
+
+  /// Flag to indicate if data is still loading.
   bool _isLoading = true;
-  double _currentPrice = 0;
-  double _previousPrice = 0;
+
+  /// The current trading instrument being displayed.
+  late TradingInstrument _currentInstrument;
 
   @override
   void initState() {
@@ -39,90 +62,105 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
       parent: _animationController,
       curve: Curves.easeInOut,
     );
-    _currentPrice = widget.instrument.price!;
-    _previousPrice = widget.instrument.previousTickPrice!;
+    _currentInstrument = widget.instrument;
     _loadData();
   }
 
+  /// Simulates data loading with a delay.
   Future<void> _loadData() async {
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 0));
     if (mounted) {
       setState(() {
         _isLoading = false;
       });
-      _startDataStream();
     }
-  }
-
-  void _startDataStream() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _previousPrice = _currentPrice;
-        _currentPrice = _currentPrice +
-            (Random().nextDouble() - 0.5) * 2; // Simulate price change
-        _priceData.add(FlSpot(_priceData.length.toDouble(), _currentPrice));
-      });
-      _animationController.forward(from: 0.0);
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    });
   }
 
   @override
   void dispose() {
-    _timer.cancel();
-    _scrollController.dispose();
     _animationController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(widget.instrument.displaySymbol,
-            style: const TextStyle(
-                color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppMargins.margin16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.instrument.description,
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 18),
+    return BlocBuilder<TradingCubit, TradingState>(
+      bloc: GetIt.I<TradingCubit>(),
+      builder: (context, state) {
+        if (state is TradingLoaded) {
+          _updateInstrumentData(state);
+        }
+        return Scaffold(
+          backgroundColor: AppColors.primaryBackground,
+          appBar: AppBar(
+            centerTitle: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Text(_currentInstrument.displaySymbol,
+                style: const TextStyle(
+                    color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(AppMargins.margin16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _currentInstrument.description,
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 18),
+                ),
+                const SizedBox(height: AppMargins.margin20),
+                _isLoading ? _buildShimmerPriceInfo() : _buildPriceInfo(),
+                const SizedBox(height: AppMargins.margin20),
+                Expanded(
+                  child: _isLoading ? _buildShimmerChart() : _buildChart(),
+                ),
+              ],
             ),
-            const SizedBox(height: AppMargins.margin20),
-            _isLoading ? _buildShimmerPriceInfo() : _buildPriceInfo(),
-            const SizedBox(height: AppMargins.margin20),
-            Expanded(
-              child: _isLoading ? _buildShimmerChart() : _buildChart(),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
+  /// Updates the current instrument data when new state is received.
+  void _updateInstrumentData(TradingLoaded state) {
+    final updatedInstrument = state.instruments.firstWhere(
+      (instrument) => instrument.symbol == _currentInstrument.symbol,
+      orElse: () => _currentInstrument as TradingInstrumentModel,
+    );
+
+    if (updatedInstrument != _currentInstrument) {
+      setState(() {
+        _currentInstrument = updatedInstrument;
+        if (_currentInstrument.price != null && _currentInstrument.price! > 0) {
+          _priceData.add(
+              FlSpot(_priceData.length.toDouble(), _currentInstrument.price!));
+          _animationController.forward(from: 0.0);
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            }
+          });
+        }
+      });
+    }
+  }
+
+  /// Builds a shimmer effect for the price info while loading.
   Widget _buildShimmerPriceInfo() {
     return Shimmer.fromColors(
       baseColor: AppColors.shimmerBase,
       highlightColor: AppColors.shimmerHighlight,
       child: Container(
-        height: 80,
+        height: AppMargins.margin80,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(AppMargins.margin16),
@@ -131,6 +169,7 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
     );
   }
 
+  /// Builds a shimmer effect for the chart while loading.
   Widget _buildShimmerChart() {
     return Shimmer.fromColors(
       baseColor: AppColors.shimmerBase,
@@ -144,6 +183,7 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
     );
   }
 
+  /// Builds the price chart widget.
   Widget _buildChart() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -254,6 +294,7 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
     );
   }
 
+  /// Builds the price information widget.
   Widget _buildPriceInfo() {
     return Container(
       padding: const EdgeInsets.all(AppMargins.margin16),
@@ -271,7 +312,12 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
                   style:
                       TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               const SizedBox(height: AppMargins.margin08),
-              PriceWidget(price: _currentPrice, previousPrice: _previousPrice)
+              PriceWidget(
+                price: _currentInstrument.price ?? 0,
+                previousPrice: _currentInstrument.previousTickPrice ??
+                    _currentInstrument.price ??
+                    0,
+              )
             ],
           ),
         ],

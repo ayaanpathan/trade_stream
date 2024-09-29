@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:trade_stream/core/consts.dart';
 
+/// A custom search bar widget for the home screen.
+///
+/// This widget provides a search input field with a search icon and customized styling.
+/// It is designed to be used for searching trading symbols or instruments.
 class HomeSearchBar extends StatelessWidget {
+  /// The controller for the search input field.
   final TextEditingController controller;
+
+  /// Callback function triggered when the search input changes.
   final ValueChanged<String> onChanged;
 
+  /// Creates a [HomeSearchBar].
+  ///
+  /// The [controller] and [onChanged] parameters are required.
   const HomeSearchBar({
     super.key,
     required this.controller,
