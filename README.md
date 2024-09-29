@@ -36,7 +36,7 @@ To get a local copy up and running, follow these steps:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/trade_stream.git
+   git clone https://github.com/ayaanpathan/trade_stream.git
    ```
 
 2. Navigate to the project directory:
@@ -51,6 +51,7 @@ To get a local copy up and running, follow these steps:
 
 4. Set up your API key:
    - Create a file named `.env` in the root directory
+   - Go to https://finnhub.io/ and register to get the free API key 
    - Add your Finnhub API key:
      ```
      API_KEY=your_finnhub_api_key_here
