@@ -11,12 +11,20 @@ import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cu
 import 'package:trade_stream/features/trading_home/presentation/pages/trading_home_page.dart';
 import 'package:trade_stream/core/network/websocket_service.dart';
 
+/// The main entry point for the application.
+///
+/// This function initializes the environment, sets up dependency injection,
+/// and runs the app.
 void main() async {
   await Env.init();
   setupGetIt();
   runApp(const MyApp());
 }
 
+/// Sets up dependency injection using GetIt.
+///
+/// This function registers singletons for TradingCubit, WebSocketService,
+/// TradingRepository, and ConnectivityCubit.
 void setupGetIt() {
   GetIt.I.registerLazySingleton<TradingCubit>(() => TradingCubit(
         TradingRepositoryImpl(
@@ -31,7 +39,12 @@ void setupGetIt() {
   GetIt.I.registerLazySingleton<ConnectivityCubit>(() => ConnectivityCubit());
 }
 
+/// The root widget of the application.
+///
+/// This widget sets up the BlocProvider for ConnectivityCubit and
+/// configures the MaterialApp with the app's theme and home page.
 class MyApp extends StatelessWidget {
+  /// Creates a MyApp widget.
   const MyApp({super.key});
 
   @override

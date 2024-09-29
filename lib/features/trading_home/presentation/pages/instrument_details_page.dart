@@ -1,7 +1,3 @@
-/// A page that displays detailed information about a specific trading instrument.
-///
-/// This page shows the instrument's description, current price, and a chart of price history.
-/// It uses BLoC pattern for state management and real-time updates.
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,9 +10,11 @@ import 'dart:async';
 import 'dart:math';
 import 'package:trade_stream/features/trading_home/presentation/widgets/price_widget.dart';
 import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
-import 'dart:developer' as dev;
 
-/// Stateful widget for the instrument detail page.
+/// A page that displays detailed information about a specific trading instrument.
+///
+/// This page shows the instrument's description, current price, and a chart of price history.
+/// It uses BLoC pattern for state management and real-time updates.
 class InstrumentDetailPage extends StatefulWidget {
   /// The trading instrument to display details for.
   final TradingInstrument instrument;
