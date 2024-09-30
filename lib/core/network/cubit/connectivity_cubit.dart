@@ -10,7 +10,7 @@ part 'connectivity_state.dart';
 /// changes and emits appropriate states based on the current connectivity status.
 class ConnectivityCubit extends Cubit<ConnectivityState> {
   /// The Connectivity instance used to check and monitor network connectivity.
-  final Connectivity _connectivity = Connectivity();
+  final Connectivity _connectivity;
 
   /// A subscription to the connectivity changes stream.
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
@@ -18,7 +18,9 @@ class ConnectivityCubit extends Cubit<ConnectivityState> {
   /// Creates a new instance of [ConnectivityCubit].
   ///
   /// Initializes the connectivity state and sets up a listener for connectivity changes.
-  ConnectivityCubit() : super(ConnectivityInitial()) {
+  ConnectivityCubit({Connectivity? connectivity})
+      : _connectivity = connectivity ?? Connectivity(),
+        super(ConnectivityInitial()) {
     _initConnectivity();
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
       (result) => _updateConnectionStatus(result.first),

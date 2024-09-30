@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:trade_stream/core/env.dart';
 
 /// A class containing application-wide constants.
 class AppConstants {
+  /// websocket api
+  static String websocketApi = 'wss://ws.finnhub.io/?token=${Env.apiKey}';
+
   /// The maximum number of WebSocket symbol subscriptions allowed for a free account.
   static const int maxInstrumentsForFreeAccount = 50;
 

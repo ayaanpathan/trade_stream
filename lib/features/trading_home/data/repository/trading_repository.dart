@@ -81,7 +81,7 @@ class TradingRepositoryImpl implements TradingRepository {
     final exchange = market == AppConstants.stocks
         ? 'US'
         : (market == AppConstants.crypto
-            ? AppConstants.binance
+            ? AppConstants.coinbase
             : AppConstants.oanda);
     final additionalParams = market == AppConstants.stocks
         ? '&mic=XNAS&securityType=Common Stock'
@@ -92,9 +92,6 @@ class TradingRepositoryImpl implements TradingRepository {
           '$baseUrl/$endpoint?exchange=$exchange$additionalParams&token=${Env.apiKey}'),
     );
 
-    dev.log('Response status code: ${response.statusCode}');
-    dev.log('Response body: ${response.body}');
-
     if (response.statusCode == 200) {
       if (response.body.trim().startsWith('{') ||
           response.body.trim().startsWith('[')) {
@@ -104,7 +101,6 @@ class TradingRepositoryImpl implements TradingRepository {
               .take(AppConstants.maxInstrumentsForFreeAccount)
               .map((json) => TradingInstrumentModel.fromJson(json))
               .toList();
-          dev.log('Fetched ${tradingSymbols.length} trading instruments');
           return tradingSymbols;
         } catch (e) {
           dev.log('Error parsing JSON response: $e', error: e);

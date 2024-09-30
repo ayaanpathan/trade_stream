@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:trade_stream/core/consts.dart';
 import 'package:trade_stream/core/env.dart';
 import 'package:trade_stream/core/network/cubit/connectivity_cubit.dart';
 import 'package:trade_stream/core/theme/app_theme.dart';
@@ -17,7 +18,7 @@ import 'package:trade_stream/core/network/websocket_service.dart';
 /// and runs the app.
 void main() async {
   await Env.init();
-  setupGetIt();
+  setupCubits();
   runApp(const MyApp());
 }
 
@@ -25,16 +26,16 @@ void main() async {
 ///
 /// This function registers singletons for TradingCubit, WebSocketService,
 /// TradingRepository, and ConnectivityCubit.
-void setupGetIt() {
+void setupCubits() {
   GetIt.I.registerLazySingleton<TradingCubit>(() => TradingCubit(
         TradingRepositoryImpl(
-          WebSocketService('wss://ws.finnhub.io/?token=${Env.apiKey}'),
+          WebSocketService(AppConstants.websocketApi),
         ),
       ));
   GetIt.I.registerLazySingleton<WebSocketService>(
-      () => WebSocketService('wss://ws.finnhub.io/?token=${Env.apiKey}'));
+      () => WebSocketService(AppConstants.websocketApi));
   GetIt.I.registerLazySingleton<TradingRepository>(() => TradingRepositoryImpl(
-        WebSocketService('wss://ws.finnhub.io/?token=${Env.apiKey}'),
+        WebSocketService(AppConstants.websocketApi),
       ));
   GetIt.I.registerLazySingleton<ConnectivityCubit>(() => ConnectivityCubit());
 }
@@ -53,7 +54,7 @@ class MyApp extends StatelessWidget {
       create: (context) => ConnectivityCubit(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Trading App',
+        title: 'Trading Stream',
         theme: AppTheme.buildDarkTheme(),
         home: const ConnectionWrapper(child: TradingHomePage()),
       ),

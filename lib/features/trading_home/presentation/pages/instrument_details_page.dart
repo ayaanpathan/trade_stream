@@ -11,6 +11,11 @@ import 'dart:math';
 import 'package:trade_stream/features/trading_home/presentation/widgets/price_widget.dart';
 import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
 
+import 'dart:developer' as dev;
+
+/// Enum to represent chart types
+enum ChartType { line, bar }
+
 /// A page that displays detailed information about a specific trading instrument.
 ///
 /// This page shows the instrument's description, current price, and a chart of price history.
@@ -49,6 +54,12 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
   /// The current trading instrument being displayed.
   late TradingInstrument _currentInstrument;
 
+  /// The number of visible points on the chart.
+  final int visiblePoints = 50;
+
+  /// Current chart type
+  ChartType _currentChartType = ChartType.line;
+
   @override
   void initState() {
     super.initState();
@@ -66,7 +77,7 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
 
   /// Simulates data loading with a delay.
   Future<void> _loadData() async {
-    await Future.delayed(const Duration(seconds: 0));
+    await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -98,6 +109,9 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
             title: Text(_currentInstrument.displaySymbol,
                 style: const TextStyle(
                     color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+            actions: [
+              _buildChartTypeSwitcher(),
+            ],
           ),
           body: Padding(
             padding: const EdgeInsets.all(AppMargins.margin16),
@@ -130,25 +144,21 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
       orElse: () => _currentInstrument as TradingInstrumentModel,
     );
 
-    if (updatedInstrument != _currentInstrument) {
-      setState(() {
-        _currentInstrument = updatedInstrument;
-        if (_currentInstrument.price != null && _currentInstrument.price! > 0) {
-          _priceData.add(
-              FlSpot(_priceData.length.toDouble(), _currentInstrument.price!));
-          _animationController.forward(from: 0.0);
+    if (updatedInstrument == _currentInstrument) {
+      dev.log('Updating instrument data in state');
+      _currentInstrument = updatedInstrument;
+      if (_currentInstrument.price != null && _currentInstrument.price! > 0) {
+        _priceData.add(
+            FlSpot(_priceData.length.toDouble(), _currentInstrument.price!));
+        _animationController.forward(from: 0.0);
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients) {
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            }
-          });
-        }
-      });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController
+                .jumpTo(_scrollController.position.maxScrollExtent);
+          }
+        });
+      }
     }
   }
 
@@ -181,7 +191,75 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
     );
   }
 
-  /// Builds the price chart widget.
+  /// Builds the chart type switcher widget
+  Widget _buildChartTypeSwitcher() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppMargins.margin08),
+      padding: const EdgeInsets.symmetric(horizontal: AppMargins.margin12),
+      decoration: BoxDecoration(
+        color: AppColors.secondaryBackground,
+        borderRadius: BorderRadius.circular(AppMargins.margin20),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ChartType>(
+          value: _currentChartType,
+          menuWidth: AppMargins.margin120,
+          alignment: Alignment.center,
+          items: [
+            _buildChartTypeSelectorItem(ChartType.line),
+            _buildChartTypeSelectorItem(ChartType.bar),
+          ],
+          onChanged: (ChartType? newValue) {
+            if (newValue != null && newValue != _currentChartType) {
+              setState(() => _currentChartType = newValue);
+            }
+          },
+          icon: const Icon(Icons.arrow_drop_down,
+              color: AppColors.accentColorLight),
+          dropdownColor: AppColors.secondaryBackground,
+          selectedItemBuilder: (BuildContext context) {
+            return ChartType.values.map<Widget>((ChartType type) {
+              return Container(
+                alignment: Alignment.center,
+                child: _getIconForChartType(type),
+              );
+            }).toList();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Builds a dropdown menu item for a specific chart type.
+  DropdownMenuItem<ChartType> _buildChartTypeSelectorItem(ChartType type) {
+    return DropdownMenuItem(
+      value: type,
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _getIconForChartType(type),
+          const SizedBox(width: AppMargins.margin08),
+          Text(
+            type == ChartType.line ? 'Line' : 'Bar',
+            style: const TextStyle(color: AppColors.accentColorLight),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Returns the appropriate icon for a given chart type.
+  Widget _getIconForChartType(ChartType type) {
+    switch (type) {
+      case ChartType.line:
+        return const Icon(Icons.show_chart, color: AppColors.accentColorLight);
+      case ChartType.bar:
+        return const Icon(Icons.bar_chart, color: AppColors.accentColorLight);
+    }
+  }
+
+  /// Builds the price chart widget
   Widget _buildChart() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -197,96 +275,245 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
         child: AnimatedBuilder(
           animation: _animation,
           builder: (context, child) {
-            return LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  getDrawingHorizontalLine: (value) {
-                    return const FlLine(
-                      color: AppColors.accentColor,
-                      strokeWidth: 1,
-                    );
-                  },
-                  getDrawingVerticalLine: (value) {
-                    return const FlLine(
-                      color: AppColors.accentColor,
-                      strokeWidth: 1,
-                    );
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        if (value % 10 == 0) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
-                          );
-                        }
-                        return const SizedBox();
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) => Text(
-                        value.toStringAsFixed(2),
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
-                      ),
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: 0,
-                maxX: _priceData.length.toDouble() - 1,
-                minY: _priceData.isEmpty
-                    ? 0
-                    : _priceData.map((spot) => spot.y).reduce(min) - 1,
-                maxY: _priceData.isEmpty
-                    ? 10
-                    : _priceData.map((spot) => spot.y).reduce(max) + 1,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: _priceData,
-                    isCurved: true,
-                    gradient: const LinearGradient(
-                      colors: [
-                        AppColors.accentColor,
-                        AppColors.accentColorLight
-                      ],
-                    ),
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.accentColor.withOpacity(0.3),
-                          AppColors.accentColorLight.withOpacity(0.3),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            if (_priceData.isEmpty) {
+              return const SizedBox();
+            }
+
+            double currentPrice = _currentInstrument.price ?? 0;
+
+            // Calculate the range based on both historical data and current price
+            double minY =
+                min(_priceData.map((spot) => spot.y).reduce(min), currentPrice);
+            double maxY =
+                max(_priceData.map((spot) => spot.y).reduce(max), currentPrice);
+
+            // Calculate the range and add padding
+            double yRange = (maxY - minY);
+            double padding = yRange * 0.1; // 10% padding
+            double adjustedMinY = max(0, minY - padding);
+            double adjustedMaxY = maxY + padding;
+
+            // Ensure the current price is within the range
+            adjustedMinY = min(adjustedMinY, currentPrice);
+            adjustedMaxY = max(adjustedMaxY, currentPrice);
+
+            double minX = max(0, _priceData.length.toDouble() - visiblePoints);
+            double maxX = _priceData.length.toDouble();
+
+            return _currentChartType == ChartType.line
+                ? _buildLineChart(
+                    minX, maxX, adjustedMinY, adjustedMaxY, currentPrice)
+                : _buildBarChart(
+                    minX, maxX, adjustedMinY, adjustedMaxY, currentPrice);
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Builds the line chart
+  Widget _buildLineChart(
+      double minX, double maxX, double minY, double maxY, double currentPrice) {
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          getDrawingHorizontalLine: (value) {
+            return const FlLine(
+              color: AppColors.accentColor,
+              strokeWidth: 1,
             );
           },
+          getDrawingVerticalLine: (value) {
+            return const FlLine(
+              color: AppColors.accentColor,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              getTitlesWidget: (value, meta) {
+                if (value % 10 == 0) {
+                  return Text(
+                    value.toInt().toString(),
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12),
+                  );
+                }
+                return const SizedBox();
+              },
+            ),
+          ),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: false,
+              reservedSize: 5,
+            ),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        minX: minX,
+        maxX: maxX,
+        minY: minY,
+        maxY: maxY,
+        lineBarsData: [
+          LineChartBarData(
+            spots: _priceData.asMap().entries.map((entry) {
+              return FlSpot(entry.key.toDouble(), entry.value.y);
+            }).toList(),
+            isCurved: true,
+            gradient: const LinearGradient(
+              colors: [AppColors.accentColor, AppColors.accentColorLight],
+            ),
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.accentColor.withOpacity(0.3),
+                  AppColors.accentColorLight.withOpacity(0.3),
+                ],
+              ),
+            ),
+          ),
+        ],
+        extraLinesData: ExtraLinesData(
+          horizontalLines: [
+            HorizontalLine(
+              y: currentPrice,
+              color: AppColors.accentColorLight,
+              strokeWidth: 1.5,
+              dashArray: [5, 5],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topRight,
+                padding: const EdgeInsets.only(
+                    right: AppMargins.margin20,
+                    top: AppMargins.margin04,
+                    bottom: AppMargins.margin04),
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  backgroundColor:
+                      AppColors.secondaryBackground.withOpacity(0.7),
+                ),
+                labelResolver: (line) =>
+                    '  ${currentPrice.toStringAsFixed(5)}   ',
+              ),
+            ),
+          ],
+        ),
+        clipData: const FlClipData.all(),
+      ),
+    );
+  }
+
+  /// Builds the bar chart
+  Widget _buildBarChart(
+      double minX, double maxX, double minY, double maxY, double currentPrice) {
+    return BarChart(
+      BarChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          getDrawingHorizontalLine: (value) {
+            return const FlLine(
+              color: AppColors.accentColor,
+              strokeWidth: 1,
+            );
+          },
+          getDrawingVerticalLine: (value) {
+            return const FlLine(
+              color: AppColors.accentColor,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              getTitlesWidget: (value, meta) {
+                if (value % 10 == 0) {
+                  return Text(
+                    value.toInt().toString(),
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12),
+                  );
+                }
+                return const SizedBox();
+              },
+            ),
+          ),
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        minY: minY,
+        maxY: maxY,
+        barGroups: _priceData.asMap().entries.map((entry) {
+          return BarChartGroupData(
+            x: entry.key,
+            barRods: [
+              BarChartRodData(
+                toY: entry.value.y,
+                gradient: const LinearGradient(
+                  colors: [AppColors.accentColor, AppColors.accentColorLight],
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                ),
+                width: 8,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(4)),
+              ),
+            ],
+          );
+        }).toList(),
+        extraLinesData: ExtraLinesData(
+          horizontalLines: [
+            HorizontalLine(
+              y: currentPrice,
+              color: AppColors.accentColorLight,
+              strokeWidth: 1.5,
+              dashArray: [5, 5],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topRight,
+                padding: const EdgeInsets.only(
+                    right: AppMargins.margin20, top: 2, bottom: 2),
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  backgroundColor:
+                      AppColors.secondaryBackground.withOpacity(0.7),
+                ),
+                labelResolver: (line) =>
+                    '  ${currentPrice.toStringAsFixed(5)}  ',
+              ),
+            ),
+          ],
         ),
       ),
     );

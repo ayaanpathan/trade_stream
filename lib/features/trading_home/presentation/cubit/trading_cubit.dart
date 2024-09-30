@@ -80,6 +80,11 @@ class TradingCubit extends Cubit<TradingState> {
     dev.log('Getting trading instruments for market: $market');
     emit(TradingLoading());
     try {
+      // Fetch instruments first
+      _currentInstruments = await repository.getTradingInstruments(market);
+      emit(TradingLoaded(_currentInstruments));
+
+      // Then set up the price update listener
       repository.getPriceForTradingInstruments().listen(
         (priceData) {
           if (priceData.isEmpty) return;
@@ -87,25 +92,25 @@ class TradingCubit extends Cubit<TradingState> {
               'symbol: ${priceData.first.symbol} price: ${priceData.first.price}');
 
           for (final price in priceData) {
-            final instrument = _currentInstruments
-                .where((element) => element.symbol == price.symbol)
-                .first;
-            if (instrument.price != price.price) {
-              instrument.previousTickPrice = instrument.price;
-              instrument.price = price.price;
-              instrument.volume = price.volume;
+            final instrumentIndex = _currentInstruments
+                .indexWhere((element) => element.symbol == price.symbol);
+            if (instrumentIndex != -1) {
+              final instrument = _currentInstruments[instrumentIndex];
+              if (instrument.price != price.price) {
+                instrument.previousTickPrice = instrument.price;
+                instrument.price = price.price;
+                instrument.volume = price.volume;
+              }
             }
           }
 
-          emit(TradingLoaded(_currentInstruments));
+          updateState();
         },
         onError: (error) {
           dev.log('Stream error: $error');
           emit(TradingError('Error updating prices. Please try again.'));
         },
       );
-
-      emit(TradingLoaded(_currentInstruments));
     } catch (error, stackTrace) {
       dev.log('Error: $error');
       dev.log('StackTrace: $stackTrace');

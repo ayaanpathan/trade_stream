@@ -2,33 +2,33 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:get_it/get_it.dart';
-import 'package:trade_stream/core/env.dart';
+import 'package:trade_stream/core/consts.dart';
 import 'package:trade_stream/features/trading_home/data/models/trading_price_model.dart';
 import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// A service class for managing WebSocket connections and related operations.
 class WebSocketService {
-  WebSocketChannel? _channel;
+  WebSocketChannel? channel;
   Timer? _heartbeatTimer;
   Timer? _reconnectTimer;
   DateTime? _lastHeartbeatResponse;
   bool _isConnected = false;
   final Duration _heartbeatInterval = const Duration(seconds: 60);
-  final Duration _reconnectInterval = const Duration(seconds: 5);
+  final Duration _reconnectInterval = const Duration(seconds: 90000);
 
   /// Creates a new instance of [WebSocketService] and connects to the specified URL.
   ///
   /// [url] The WebSocket URL to connect to.
   WebSocketService(String url)
-      : _channel = WebSocketChannel.connect(Uri.parse(url));
+      : channel = WebSocketChannel.connect(Uri.parse(url));
 
   /// Returns a stream of [TradingPriceModel] lists based on incoming WebSocket messages.
   ///
   /// This method filters and transforms the incoming WebSocket messages to extract
   /// trading price information.
   Stream<List<TradingPriceModel>> getPriceForTradingInstruments() {
-    return _channel!.stream.map((event) {
+    return channel!.stream.map((event) {
       final decodedData = json.decode(event);
       if (decodedData['type'] == 'trade') {
         List<dynamic> data = decodedData['data'];
@@ -42,18 +42,18 @@ class WebSocketService {
   ///
   /// [symbol] The trading symbol to subscribe to.
   Future<void> subscribe(String symbol) async {
-    _channel!.sink.add(json.encode({
+    channel!.sink.add(json.encode({
       'type': 'subscribe',
       'symbol': symbol,
     }));
-    _channel!.ready;
+    channel!.ready;
   }
 
   /// Unsubscribes from updates for a specific trading symbol.
   ///
   /// [symbol] The trading symbol to unsubscribe from.
   Future<void> unsubscribe(String symbol) async {
-    _channel!.sink.add(json.encode({
+    channel!.sink.add(json.encode({
       'type': 'unsubscribe',
       'symbol': symbol,
     }));
@@ -61,7 +61,7 @@ class WebSocketService {
 
   /// Disposes of the WebSocket connection.
   void dispose() {
-    _channel!.sink.close();
+    channel!.sink.close();
   }
 
   /// Establishes a connection to the WebSocket server.
@@ -73,11 +73,10 @@ class WebSocketService {
       'Connecting to WebSocket',
       name: 'WebSocketService',
     );
-    _channel = WebSocketChannel.connect(
-        Uri.parse('wss://ws.finnhub.io/?token=${Env.apiKey}'));
+    channel = WebSocketChannel.connect(Uri.parse(AppConstants.websocketApi));
     _isConnected = true;
     _startHeartbeat();
-    _channel!.stream.listen(
+    channel!.stream.listen(
       _onMessage,
       onError: _onError,
       onDone: _onDone,
@@ -101,7 +100,7 @@ class WebSocketService {
   /// Sends a heartbeat message to the server.
   void _sendHeartbeat() {
     dev.log('Sending heartbeat');
-    _channel?.sink.add('{"type": "pong"}');
+    channel?.sink.add('{"type": "pong"}');
   }
 
   /// Checks the connection status and initiates reconnection if necessary.
@@ -141,7 +140,7 @@ class WebSocketService {
 
   /// Attempts to reconnect to the WebSocket server.
   void _reconnect() {
-    _channel?.sink.close();
+    channel?.sink.close();
     _heartbeatTimer?.cancel();
     _reconnectTimer?.cancel();
 
@@ -160,7 +159,7 @@ class WebSocketService {
   /// [message] The message to send.
   void send(String message) {
     if (_isConnected) {
-      _channel?.sink.add(message);
+      channel?.sink.add(message);
     } else {
       dev.log('Cannot send message. WebSocket is not connected.');
     }
@@ -171,7 +170,7 @@ class WebSocketService {
     _isConnected = false;
     _heartbeatTimer?.cancel();
     _reconnectTimer?.cancel();
-    _channel?.sink.close();
+    channel?.sink.close();
   }
 
   /// Returns the current connection status.
