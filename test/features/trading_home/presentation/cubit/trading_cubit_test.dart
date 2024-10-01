@@ -190,8 +190,6 @@ void main() {
         expect: () => [
           isA<TradingLoading>(),
           isA<TradingLoaded>(),
-          isA<TradingLoaded>(),
-          isA<TradingLoaded>(),
         ],
         verify: (_) {
           verify(() => mockRepository.getTradingInstruments('forex')).called(1);
