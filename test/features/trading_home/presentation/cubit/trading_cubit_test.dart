@@ -4,7 +4,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:trade_stream/features/trading_home/data/models/trading_instrument_model.dart';
 import 'package:trade_stream/features/trading_home/data/models/trading_price_model.dart';
 import 'package:trade_stream/features/trading_home/data/repository/trading_repository_interface.dart';
-import 'package:trade_stream/features/trading_home/domain/entities/trading_instrument.dart';
 import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
 
 class MockTradingRepository extends Mock implements TradingRepository {}
@@ -88,7 +87,7 @@ void main() {
     group('subscribeAll', () {
       test('subscribes to all current instruments', () async {
         final instruments = [
-          TradingInstrument(
+          TradingInstrumentModel(
             symbol: 'EURUSD',
             description: '',
             displaySymbol: '',
@@ -111,7 +110,7 @@ void main() {
         'unsubscribes from all current instruments and emits TradingLoading',
         build: () {
           final instruments = [
-            TradingInstrument(
+            TradingInstrumentModel(
               symbol: 'EURUSD',
               description: '',
               displaySymbol: '',
@@ -119,7 +118,7 @@ void main() {
               previousTickPrice: 0.00,
               volume: 0.00,
             ),
-            TradingInstrument(
+            TradingInstrumentModel(
               symbol: 'GBPUSD',
               description: '',
               displaySymbol: '',
@@ -147,7 +146,7 @@ void main() {
         'emits TradingLoaded with current instruments',
         build: () {
           final instruments = [
-            TradingInstrument(
+            TradingInstrumentModel(
               symbol: 'EURUSD',
               description: '',
               displaySymbol: '',
@@ -231,7 +230,7 @@ void main() {
 
     group('updateState', () {
       test('emits TradingLoaded with current instruments', () {
-        final instruments = <TradingInstrument>[];
+        final instruments = <TradingInstrumentModel>[];
         tradingCubit.emit(TradingLoaded(instruments));
 
         tradingCubit.updateState();

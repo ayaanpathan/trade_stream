@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trade_stream/features/trading_home/data/models/trading_instrument_model.dart';
 import 'package:trade_stream/features/trading_home/data/repository/trading_repository_interface.dart';
-import 'package:trade_stream/features/trading_home/domain/entities/trading_instrument.dart';
 
 part 'trading_state.dart';
 
@@ -12,19 +12,39 @@ part 'trading_state.dart';
 /// This Cubit handles operations such as subscribing to trading symbols,
 /// fetching trading instruments, and managing real-time price updates.
 class TradingCubit extends Cubit<TradingState> {
-  /// The repository responsible for trading data operations.
+  /// The repository used to interact with trading data.
   final TradingRepository repository;
-
-  /// Creates a new instance of [TradingCubit].
-  ///
-  /// [repository] is required to interact with trading data.
-  TradingCubit(this.repository) : super(TradingInitial());
 
   /// Subscription to the price updates stream.
   StreamSubscription? _subscription;
 
   /// List of currently tracked trading instruments.
-  List<TradingInstrument> _currentInstruments = [];
+  List<TradingInstrumentModel> _currentInstruments = [];
+
+  /// Timer used to periodically apply pending updates.
+  Timer? _updateTimer;
+
+  /// The interval at which pending updates are applied.
+  final Duration _updateInterval = const Duration(milliseconds: 500);
+
+  /// Map to store pending updates for trading instruments.
+  final Map<String, TradingInstrumentModel> _pendingUpdates = {};
+
+  /// Creates a new instance of [TradingCubit].
+  ///
+  /// [repository] is required to interact with trading data.
+  TradingCubit(this.repository) : super(TradingInitial()) {
+    _startUpdateTimer();
+  }
+
+  /// Starts the timer to periodically apply pending updates.
+  void _startUpdateTimer() {
+    _updateTimer = Timer.periodic(_updateInterval, (_) {
+      if (_pendingUpdates.isNotEmpty) {
+        _applyPendingUpdates();
+      }
+    });
+  }
 
   /// Subscribes to price updates for a specific trading symbol.
   ///
@@ -80,11 +100,9 @@ class TradingCubit extends Cubit<TradingState> {
     dev.log('Getting trading instruments for market: $market');
     emit(TradingLoading());
     try {
-      // Fetch instruments first
       _currentInstruments = await repository.getTradingInstruments(market);
       emit(TradingLoaded(_currentInstruments));
 
-      // Then set up the price update listener
       repository.getPriceForTradingInstruments().listen(
         (priceData) {
           if (priceData.isEmpty) return;
@@ -97,16 +115,17 @@ class TradingCubit extends Cubit<TradingState> {
             if (instrumentIndex != -1) {
               final instrument = _currentInstruments[instrumentIndex];
               if (instrument.price != price.price) {
-                instrument.previousTickPrice = instrument.price;
-                instrument.price = price.price;
-                instrument.volume = price.volume;
+                _pendingUpdates[price.symbol] = TradingInstrumentModel(
+                  symbol: instrument.symbol,
+                  previousTickPrice: instrument.price,
+                  price: price.price,
+                  volume: price.volume,
+                  description: instrument.description,
+                  displaySymbol: instrument.displaySymbol,
+                );
               }
             }
           }
-
-          Future.delayed(const Duration(seconds: 1), () {
-            updateState();
-          });
         },
         onError: (error) {
           dev.log('Stream error: $error');
@@ -143,6 +162,22 @@ class TradingCubit extends Cubit<TradingState> {
   @override
   Future<void> close() {
     _subscription?.cancel();
+    _updateTimer?.cancel();
     return super.close();
+  }
+
+  /// Applies pending updates to the current instruments and emits a new state.
+  void _applyPendingUpdates() {
+    if (_pendingUpdates.isNotEmpty) {
+      for (var symbol in _pendingUpdates.keys) {
+        final index = _currentInstruments
+            .indexWhere((element) => element.symbol == symbol);
+        if (index != -1) {
+          _currentInstruments[index] = _pendingUpdates[symbol]!;
+        }
+      }
+      _pendingUpdates.clear();
+      emit(TradingLoaded(_currentInstruments));
+    }
   }
 }

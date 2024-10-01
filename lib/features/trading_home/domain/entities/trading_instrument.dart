@@ -39,4 +39,22 @@ class TradingInstrument {
     required this.previousTickPrice,
     required this.volume,
   });
+
+  TradingInstrument copyWith({
+    String? symbol,
+    String? description,
+    String? displaySymbol,
+    double? price,
+    double? previousTickPrice,
+    double? volume,
+  }) {
+    return TradingInstrument(
+      symbol: symbol ?? this.symbol,
+      description: description ?? this.description,
+      displaySymbol: displaySymbol ?? this.displaySymbol,
+      price: price ?? this.price,
+      previousTickPrice: previousTickPrice ?? this.previousTickPrice,
+      volume: volume ?? this.volume,
+    );
+  }
 }

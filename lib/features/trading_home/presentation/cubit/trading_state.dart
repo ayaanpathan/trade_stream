@@ -29,13 +29,9 @@ class TradingLoading extends TradingState {}
 ///
 /// This state contains a list of trading instruments that have been successfully loaded.
 class TradingLoaded extends TradingState {
-  /// The list of trading instruments.
-  final List<TradingInstrument> instruments;
+  final List<TradingInstrumentModel> instruments;
 
-  /// Creates a new instance of [TradingLoaded] with the given [instruments].
-  TradingLoaded(
-    this.instruments,
-  );
+  TradingLoaded(this.instruments);
 
   @override
   List<Object?> get props => [instruments];

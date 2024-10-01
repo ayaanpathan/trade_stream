@@ -50,4 +50,33 @@ class TradingInstrumentModel extends TradingInstrument {
       'volume': volume,
     };
   }
+
+  /// Creates a new [TradingInstrumentModel] instance from a [TradingInstrument].
+  ///
+  /// This factory constructor takes a [TradingInstrument] and creates
+  /// a new [TradingInstrumentModel] instance from it. If 'price', 'previousTickPrice',
+  /// or 'volume' are not present in the JSON, they default to 0.
+  ///
+  /// [instrument] The [TradingInstrument] to create the model from.
+  ///
+  /// [newPrice] The new price to use. Defaults to the price of the [instrument].
+  ///
+  /// [newVolume] The new volume to use. Defaults to the volume of the [instrument].
+  ///
+  /// Returns a new [TradingInstrumentModel] instance.
+  factory TradingInstrumentModel.fromTradingInstrument(
+    TradingInstrument instrument, {
+    double? newPrice,
+    double? newVolume,
+  }) {
+    return TradingInstrumentModel(
+      symbol: instrument.symbol,
+      previousTickPrice: instrument.price,
+      price: newPrice ?? instrument.price,
+      volume: newVolume ?? instrument.volume,
+      description: instrument.description,
+      displaySymbol: instrument.displaySymbol,
+      // Add other properties here
+    );
+  }
 }

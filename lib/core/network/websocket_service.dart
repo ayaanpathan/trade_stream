@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'package:get_it/get_it.dart';
 import 'package:trade_stream/core/consts.dart';
 import 'package:trade_stream/features/trading_home/data/models/trading_price_model.dart';
+import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// A service class for managing WebSocket connections and related operations.
@@ -93,11 +95,11 @@ class WebSocketService {
       _isConnected = true;
       _startHeartbeat();
       _connectionCompleter!.complete();
-
       dev.log('WebSocket connected successfully', name: 'WebSocketService');
+      await GetIt.I<TradingCubit>().subscribeAll();
 
       // Test the connection
-      send('{"type": "ping"}');
+      send('{"type": "pong"}');
       dev.log('Ping sent to WebSocket server', name: 'WebSocketService');
     } catch (e) {
       dev.log('Error connecting to WebSocket: $e',
@@ -178,8 +180,8 @@ class WebSocketService {
   /// Attempts to reconnect to the WebSocket server.
   Future<void> _reconnect() async {
     dev.log('Attempting to reconnect WebSocket', name: 'WebSocketService');
-    await close();
-    await connect();
+    // await close();
+    // await connect();
     if (_isConnected) {
       dev.log('WebSocket reconnected successfully', name: 'WebSocketService');
     } else {
