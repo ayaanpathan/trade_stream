@@ -81,7 +81,7 @@ class TradingRepositoryImpl implements TradingRepository {
     final exchange = market == AppConstants.stocks
         ? 'US'
         : (market == AppConstants.crypto
-            ? AppConstants.coinbase
+            ? AppConstants.binance
             : AppConstants.oanda);
     final additionalParams = market == AppConstants.stocks
         ? '&mic=XNAS&securityType=Common Stock'

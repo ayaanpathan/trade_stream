@@ -96,9 +96,7 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
       bloc: GetIt.I<TradingCubit>(),
       builder: (context, state) {
         if (state is TradingLoaded) {
-          Future.delayed(const Duration(seconds: 1), () {
-            _updateInstrumentData(state);
-          });
+          _updateInstrumentData(state);
         }
         return Scaffold(
           backgroundColor: AppColors.primaryBackground,
@@ -144,20 +142,20 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
       orElse: () => _currentInstrument as TradingInstrumentModel,
     );
 
-    if (updatedInstrument == _currentInstrument) {
+    if (updatedInstrument != _currentInstrument) {
       _currentInstrument = updatedInstrument;
       if (_currentInstrument.price != null && _currentInstrument.price! > 0) {
         _priceData.add(
             FlSpot(_priceData.length.toDouble(), _currentInstrument.price!));
-        _animationController.forward(from: 0.0);
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController
-                .jumpTo(_scrollController.position.maxScrollExtent);
-          }
-        });
       }
+
+      _animationController.forward(from: 0.0);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
     }
   }
 
@@ -288,7 +286,7 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
 
             // Calculate the range and add padding
             double yRange = (maxY - minY);
-            double padding = yRange * 0.1; // 10% padding
+            double padding = yRange * 0.1;
             double adjustedMinY = max(0, minY - padding);
             double adjustedMaxY = maxY + padding;
 
