@@ -5,11 +5,10 @@ import 'package:trade_stream/core/consts.dart';
 import 'package:trade_stream/core/env.dart';
 import 'package:trade_stream/core/network/cubit/connectivity_cubit.dart';
 import 'package:trade_stream/core/theme/app_theme.dart';
-import 'package:trade_stream/core/widgets/connection_wrapper.dart';
+import 'package:trade_stream/features/splash/pages/splash_page.dart';
 import 'package:trade_stream/features/trading_home/data/repository/trading_repository.dart';
 import 'package:trade_stream/features/trading_home/data/repository/trading_repository_interface.dart';
 import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
-import 'package:trade_stream/features/trading_home/presentation/pages/trading_home_page.dart';
 import 'package:trade_stream/core/network/websocket_service.dart';
 
 /// The main entry point for the application.
@@ -56,7 +55,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Trading Stream',
         theme: AppTheme.buildDarkTheme(),
-        home: const ConnectionWrapper(child: TradingHomePage()),
+        home: const SplashPage(),
       ),
     );
   }

@@ -104,7 +104,9 @@ class TradingCubit extends Cubit<TradingState> {
             }
           }
 
-          updateState();
+          Future.delayed(const Duration(seconds: 1), () {
+            updateState();
+          });
         },
         onError: (error) {
           dev.log('Stream error: $error');

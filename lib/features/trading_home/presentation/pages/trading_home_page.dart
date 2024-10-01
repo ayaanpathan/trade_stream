@@ -64,17 +64,20 @@ class TradingHomePageState extends State<TradingHomePage> {
         return Scaffold(
           backgroundColor: AppColors.primaryBackground,
           appBar: AppBar(
-            leading:
-                const Icon(Icons.show_chart, color: AppColors.accentColorLight),
-            centerTitle: true,
+            title: const Row(
+              children: <Widget>[
+                Icon(Icons.show_chart, color: AppColors.accentColorLight),
+                SizedBox(width: AppMargins.margin08),
+                Text('Trade Stream',
+                    style: TextStyle(
+                      color: AppColors.accentColorLight,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      letterSpacing: 0.5,
+                    )),
+              ],
+            ),
             backgroundColor: AppColors.primaryBackground,
-            title: const Text('Trade Stream',
-                style: TextStyle(
-                  color: AppColors.accentColorLight,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 20,
-                  letterSpacing: 0.5,
-                )),
             actions: [
               if (state is TradingLoaded) _buildMarketSelector(state),
             ],

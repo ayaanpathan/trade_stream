@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
-import 'package:get_it/get_it.dart';
 import 'package:trade_stream/core/consts.dart';
 import 'package:trade_stream/features/trading_home/data/models/trading_price_model.dart';
-import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// A service class for managing WebSocket connections and related operations.
@@ -15,7 +13,7 @@ class WebSocketService {
   DateTime? _lastHeartbeatResponse;
   bool _isConnected = false;
   final Duration _heartbeatInterval = const Duration(seconds: 60);
-  final Duration _reconnectInterval = const Duration(seconds: 90000);
+  Completer<void>? _connectionCompleter;
 
   /// Creates a new instance of [WebSocketService] and connects to the specified URL.
   ///
@@ -32,7 +30,8 @@ class WebSocketService {
       final decodedData = json.decode(event);
       if (decodedData['type'] == 'trade') {
         List<dynamic> data = decodedData['data'];
-        return data.map((e) => TradingPriceModel.fromJson(e)).toList();
+        final prices = data.map((e) => TradingPriceModel.fromJson(e)).toList();
+        return prices;
       }
       return [];
     });
@@ -42,11 +41,11 @@ class WebSocketService {
   ///
   /// [symbol] The trading symbol to subscribe to.
   Future<void> subscribe(String symbol) async {
-    channel!.sink.add(json.encode({
+    final message = json.encode({
       'type': 'subscribe',
       'symbol': symbol,
-    }));
-    channel!.ready;
+    });
+    channel!.sink.add(message);
   }
 
   /// Unsubscribes from updates for a specific trading symbol.
@@ -69,21 +68,44 @@ class WebSocketService {
   /// This method initializes the WebSocket connection, starts the heartbeat mechanism,
   /// and sets up listeners for incoming messages and connection events.
   Future<void> connect() async {
-    dev.log(
-      'Connecting to WebSocket',
-      name: 'WebSocketService',
-    );
-    channel = WebSocketChannel.connect(Uri.parse(AppConstants.websocketApi));
-    _isConnected = true;
-    _startHeartbeat();
-    channel!.stream.listen(
-      _onMessage,
-      onError: _onError,
-      onDone: _onDone,
-    );
-    await GetIt.I<TradingCubit>()
-        .subscribeAll()
-        .then((value) => GetIt.I<TradingCubit>().updateState());
+    if (_isConnected) {
+      dev.log('Already connected to WebSocket', name: 'WebSocketService');
+      return;
+    }
+
+    _connectionCompleter = Completer<void>();
+
+    dev.log('Connecting to WebSocket', name: 'WebSocketService');
+    try {
+      channel = WebSocketChannel.connect(Uri.parse(AppConstants.websocketApi));
+      dev.log('WebSocket channel created', name: 'WebSocketService');
+
+      channel!.stream.listen(
+        _onMessage,
+        onError: _onError,
+        onDone: _onDone,
+      );
+      dev.log('WebSocket listeners set up', name: 'WebSocketService');
+
+      await channel!.ready;
+      dev.log('WebSocket connection ready', name: 'WebSocketService');
+
+      _isConnected = true;
+      _startHeartbeat();
+      _connectionCompleter!.complete();
+
+      dev.log('WebSocket connected successfully', name: 'WebSocketService');
+
+      // Test the connection
+      send('{"type": "ping"}');
+      dev.log('Ping sent to WebSocket server', name: 'WebSocketService');
+    } catch (e) {
+      dev.log('Error connecting to WebSocket: $e',
+          name: 'WebSocketService', error: e);
+      _isConnected = false;
+      _connectionCompleter!.completeError(e);
+      // Don't call _reconnect() here to avoid potential loops
+    }
   }
 
   /// Starts the heartbeat mechanism to keep the connection alive.
@@ -117,9 +139,24 @@ class WebSocketService {
   /// Handles incoming WebSocket messages.
   ///
   /// [message] The received message.
-  void _onMessage(dynamic message) {
-    dev.log('Received WebSocket message: $message');
-    _lastHeartbeatResponse = DateTime.now();
+  Future<void> _onMessage(dynamic message) async {
+    dev.log('Received WebSocket message: $message', name: 'WebSocketService');
+    try {
+      final decodedData = json.decode(message);
+      dev.log('Decoded message type: ${decodedData['type']}',
+          name: 'WebSocketService');
+      if (decodedData['type'] == 'trade') {
+        // Process trade data
+      } else if (decodedData['type'] == 'ping') {
+        send('{"type": "pong"}');
+      } else {
+        dev.log('Unhandled message type: ${decodedData['type']}',
+            name: 'WebSocketService');
+      }
+    } catch (e) {
+      dev.log('Error processing WebSocket message: $e',
+          name: 'WebSocketService', error: e);
+    }
   }
 
   /// Handles WebSocket errors.
@@ -133,25 +170,21 @@ class WebSocketService {
 
   /// Handles WebSocket connection closure.
   void _onDone() {
-    dev.log('WebSocket connection closed');
+    dev.log('WebSocket connection closed', name: 'WebSocketService');
     _isConnected = false;
     _reconnect();
   }
 
   /// Attempts to reconnect to the WebSocket server.
-  void _reconnect() {
-    channel?.sink.close();
-    _heartbeatTimer?.cancel();
-    _reconnectTimer?.cancel();
-
-    _reconnectTimer = Timer.periodic(_reconnectInterval, (_) {
-      if (!_isConnected) {
-        dev.log('Attempting to reconnect...');
-        connect();
-      } else {
-        _reconnectTimer?.cancel();
-      }
-    });
+  Future<void> _reconnect() async {
+    dev.log('Attempting to reconnect WebSocket', name: 'WebSocketService');
+    await close();
+    await connect();
+    if (_isConnected) {
+      dev.log('WebSocket reconnected successfully', name: 'WebSocketService');
+    } else {
+      dev.log('WebSocket reconnection failed', name: 'WebSocketService');
+    }
   }
 
   /// Sends a message through the WebSocket connection.

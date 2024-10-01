@@ -11,8 +11,6 @@ import 'dart:math';
 import 'package:trade_stream/features/trading_home/presentation/widgets/price_widget.dart';
 import 'package:trade_stream/features/trading_home/presentation/cubit/trading_cubit.dart';
 
-import 'dart:developer' as dev;
-
 /// Enum to represent chart types
 enum ChartType { line, bar }
 
@@ -98,7 +96,9 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
       bloc: GetIt.I<TradingCubit>(),
       builder: (context, state) {
         if (state is TradingLoaded) {
-          _updateInstrumentData(state);
+          Future.delayed(const Duration(seconds: 1), () {
+            _updateInstrumentData(state);
+          });
         }
         return Scaffold(
           backgroundColor: AppColors.primaryBackground,
@@ -145,7 +145,6 @@ class InstrumentDetailPageState extends State<InstrumentDetailPage>
     );
 
     if (updatedInstrument == _currentInstrument) {
-      dev.log('Updating instrument data in state');
       _currentInstrument = updatedInstrument;
       if (_currentInstrument.price != null && _currentInstrument.price! > 0) {
         _priceData.add(
